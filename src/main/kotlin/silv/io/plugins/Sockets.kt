@@ -1,20 +1,13 @@
 package silv.io.plugins
 
-import io.ktor.http.*
 import io.ktor.serialization.kotlinx.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import java.time.Duration
 import io.ktor.server.application.*
-import io.ktor.server.request.*
 import io.ktor.server.response.*
-import io.ktor.websocket.serialization.*
-import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import kotlinx.serialization.*
 import kotlinx.serialization.json.*
 import silv.io.models.Message
 import silv.io.models.Post
@@ -24,7 +17,6 @@ import silv.io.models.requests.Join
 import silv.io.models.util.JsonTypeParser
 import silv.io.models.util.JsonTypeParserImpl
 import silv.io.server
-import java.util.UUID
 
 
 fun Application.configureSockets() {
@@ -68,18 +60,12 @@ fun Application.configureSockets() {
 }
 
 
-private val json = Json {
-    ignoreUnknownKeys = true
-    prettyPrint = true
-    isLenient = true
-}
-
 val jsonTypeParser: JsonTypeParser = JsonTypeParserImpl()
 
 fun Route.webSocketWithType(
     _execute: suspend (
         session: WebSocketSession,
-        payload: Any
+        payload: SocketObject
     ) -> Unit
 ) {
     webSocket("/ws/init") {

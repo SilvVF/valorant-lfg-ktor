@@ -5,7 +5,6 @@ import io.ktor.server.request.*
 import io.ktor.websocket.*
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.internal.throwArrayMissingFieldException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.serializer
@@ -13,12 +12,10 @@ import silv.io.models.Message
 import silv.io.models.Post
 import silv.io.models.SocketObject
 import silv.io.models.requests.Join
-import java.util.StringJoiner
 
 class JsonTypeParserImpl: JsonTypeParser {
 
-    @OptIn(InternalSerializationApi::class)
-    override fun parse(frame: Frame.Text): Any {
+    override fun parse(frame: Frame.Text): SocketObject {
 
         val stringFrame = frame.readText()
 
@@ -27,7 +24,14 @@ class JsonTypeParserImpl: JsonTypeParser {
             ?.removePrefix("\"")?.removeSuffix("\"")
             ?: throw JsonTypeParser.Companion.JsonTypeParsingException("could not find type field in Frame $stringFrame")
 
-        val typeSerializer = when (typeAsString) {
+        val serializer = getTypeSerializerFromString(typeAsString)
+
+        return Json.decodeFromString(serializer, stringFrame)
+    }
+
+    @OptIn(InternalSerializationApi::class)
+    override fun getTypeSerializerFromString(typeAsString: String): KSerializer<out SocketObject> {
+        return when (typeAsString) {
             "Message" -> Message::class.serializer()
             "SocketObject" -> SocketObject::class.serializer()
             "Post" -> Post::class.serializer()
@@ -36,9 +40,5 @@ class JsonTypeParserImpl: JsonTypeParser {
                 "Could not find a serializer for the type $typeAsString."
             )
         }
-        println(stringFrame)
-        println(typeAsString)
-        println(typeSerializer)
-        return Json.decodeFromString(typeSerializer, stringFrame)
     }
 }
